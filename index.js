@@ -38,8 +38,17 @@ app.get("/api/actor/", async (req, res) => {
     }
 });
 
+
+// An endpoint contract refers the keys that have to be a request body
+/*
+  { 
+     "first_name":  string, actor first name
+     "last_name": string, actor last name
+   }
+
+*/
 app.post("/actor", async (req, res) => {
-    const {first_name, last_name } = res.body;
+    const {first_name, last_name } = req.body;
     if(!first_name || !last_name) { 
         res.status(400).json({"error" : "Bad Request body"});
         return;
@@ -49,28 +58,95 @@ app.post("/actor", async (req, res) => {
     try {
         connection.beginTransaction();
         let newActorId = await connection.query(`INSERT INTO actor (first_name, last_name) VALUES (? , ?);`, [first_name, last_name]);
-        connection.commit();
+        await connection.commit();
         res.status(200).json({"newId" : newActorId});
     }
     catch (err) {
-        connection.rollback();
         console.error(err);
         res.status(500).json({"error": err});
+        await connection.rollback();
     }
     finally {
-        connection.release();
+        await connection.release();
     }
 });
 
-app.put('/api/actor/:id', async (req, res) => {
+// An endpoint contract
+/*
+  { 
+     attribute:  value
+   }
+
+*/
+app.patch("/actor/:id", async (req, res) => {
+    const id = req.params.id
+    
+});
+
+// An endpoint contract
+/*
+  { 
+     "first_name":  string, actor first name
+     "last_name": string, actor last name
+   }
+
+*/
+app.put("/api/actor/:id", async (req, res) => {
     const targetId = req.params.id;
-    if(!targetId){
-        res.status(400).json({"error" : "Bad ID"});
+    const {first_name, last_name} = req.body;
+    if(!targetId || !first_name || !last_name) {
+        res.status(400).json({"error" : "Bad Param or Body"});
         return;
-    } 
+    }
+
+    const connection = await pool.getConnection();
+    try {
+        connection.beginTransaction();
+        await connection.query(
+            `UPDATE actor 
+             SET first_name = ?, last_name = ?, last_update = current_timestamp()
+             WHERE actor_id = ?;`,
+            [first_name, last_name, targetId]);
+        await connection.commit();
+        res.status(200).json({"message" : "Update Success"});
+
+    }
+    catch (err) {
+        console.error(err);
+        res.status(500).json({"error": err});
+        await connection.rollback();
+    }
+    finally {
+        await connection.release();
+    }
 
     
 });
+
+app.delete("/api/actor/:id", async (req, res) => {
+    const targetId = req.params.id;
+    if(!targetId) {
+        res.status(400).json({"error" : "Bad param"});
+        return;
+    }
+
+    const connection = pool.getConnection();
+    try {
+        connection.beginTransaction()
+        await connection.query(`DELETE actor_info WHERE actor_id = ?`, [targetId]);
+        await connection.query(`DELETE film_actor WHERE actor_id = ?`, [targetId]);
+        await connection.query(`DELETE actor WHERE actor_id = ?`, [targetId]);
+        await connection.commit();
+        res.status(200).json({"message" : "Operation Success"});
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({"error": err});
+        await connection.rollback();
+    } finally {
+        await connection.release();
+    }
+});
+
 
 app.listen(SERVER_PORT, () => {
     console.log(`Server started listening on Port ${SERVER_PORT}`);
