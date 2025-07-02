@@ -64,10 +64,15 @@ app.post("/actor", async (req, res) => {
 
 app.put('/api/actor/:id', async (req, res) => {
     const targetId = req.params.id;
-    if(!targetId){
-        res.status(400).json({"error" : "Bad ID"});
+    const {first_name, last_name} = req.body;
+    if(!targetId || !first_name || !last_name){
+        res.status(400).json({"error" : "Bad Data"});
         return;
-    } 
+    }
+    const connection = await pool.getConnection();
+    try{
+        connection.beginTransaction();        
+    }
 
     
 });
