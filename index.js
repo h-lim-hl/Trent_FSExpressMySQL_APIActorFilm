@@ -47,7 +47,7 @@ app.get("/api/actor/", async (req, res) => {
    }
 
 */
-app.post("/actor", async (req, res) => {
+app.post("/api/actor", async (req, res) => {
     const {first_name, last_name } = req.body;
     if(!first_name || !last_name) { 
         res.status(400).json({"error" : "Bad Request body"});
@@ -78,7 +78,7 @@ app.post("/actor", async (req, res) => {
    }
 
 */
-app.patch("/actor/:id", async (req, res) => {
+app.patch("/api/actor/:id", async (req, res) => {
     const id = req.params.id
     
 });
@@ -130,12 +130,11 @@ app.delete("/api/actor/:id", async (req, res) => {
         return;
     }
 
-    const connection = pool.getConnection();
+    const connection = await pool.getConnection();
     try {
         connection.beginTransaction()
-        await connection.query(`DELETE actor_info WHERE actor_id = ?`, [targetId]);
-        await connection.query(`DELETE film_actor WHERE actor_id = ?`, [targetId]);
-        await connection.query(`DELETE actor WHERE actor_id = ?`, [targetId]);
+        await connection.query(`DELETE FROM film_actor WHERE actor_id = ?`, [targetId]);
+        await connection.query(`DELETE FROM actor WHERE actor_id = ?`, [targetId]);
         await connection.commit();
         res.status(200).json({"message" : "Operation Success"});
     } catch (err) {
